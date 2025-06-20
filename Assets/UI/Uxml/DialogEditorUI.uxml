@@ -1,0 +1,7 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Uss/DialogGeneratorMain.uss?fileID=7433441132597879392&amp;guid=c5fb9969404fb22469e8960b75b49c21&amp;type=3#DialogGeneratorMain" />
+    <ui:VisualElement name="Container" style="flex-grow: 1; flex-direction: row; justify-content: space-between;">
+        <ui:VisualElement name="LeftPanel" class="panel" style="align-self: flex-start; display: flex;" />
+        <ui:VisualElement name="RightPanel" class="panel" style="align-self: flex-end; display: none;" />
+    </ui:VisualElement>
+</ui:UXML>
