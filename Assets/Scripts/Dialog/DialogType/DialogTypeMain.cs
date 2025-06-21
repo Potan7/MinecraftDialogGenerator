@@ -17,9 +17,24 @@ namespace Dialog.DialogType
         [JsonConverter(typeof(TextComponentConverter))]
         [JsonProperty(Order = -9)]
         public object title = "";
+
         [JsonConverter(typeof(TextComponentConverter))]
         [JsonProperty(Order = -8)]
-        public object external_title = null;
+        private object external_title = null;
+        public object ExternalTitle
+        {
+            get => external_title;
+            set
+            {
+                if (value is string str && string.IsNullOrEmpty(str))
+                {
+                    external_title = null;
+                    return;
+                }
+
+                external_title = value;
+            }
+        }
 
         [JsonConverter(typeof(FlexibleVariableConverter<BodyComponentAbstract>))]
         [JsonProperty(Order = -7)]
@@ -31,9 +46,11 @@ namespace Dialog.DialogType
         [DefaultValue(true)]
         [JsonProperty(Order = -5)]
         public bool can_close_with_escape = true;
+
         [DefaultValue(true)]
         [JsonProperty(Order = -4)]
         public bool pause = true;
+
         [DefaultValue(AfterAction.close)]
         [JsonProperty(Order = -3)]
         public AfterAction after_action = AfterAction.close;
