@@ -10,7 +10,7 @@ namespace Dialog.DialogType
         public ActionButton yes;
         public ActionButton no;
 
-        ConfirmationDialog() : base("confirmation")
+        public ConfirmationDialog() : base("confirmation")
         {
 
         }

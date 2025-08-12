@@ -22,7 +22,7 @@ namespace Dialog.DialogType
         public int button_width = 150;
 
 
-        DialogListDialog() : base("dialog_list")
+        public DialogListDialog() : base("dialog_list")
         {
 
         }

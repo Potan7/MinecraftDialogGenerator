@@ -10,7 +10,7 @@ namespace Dialog.DialogType
 
         public ActionButton action;
 
-        NoticeDialog() : base("notice")
+        public NoticeDialog() : base("notice")
         {
             // 기본 생성자에서 타입을 "notice"로 설정
         }

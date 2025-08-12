@@ -18,7 +18,7 @@ namespace Dialog.DialogType
         public ActionButton exit_action = null;
         
 
-        MultiActionDialog() : base("multi_action")
+        public MultiActionDialog() : base("multi_action")
         {
 
         }

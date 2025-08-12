@@ -55,6 +55,9 @@ namespace Dialog.DialogType
         [JsonProperty(Order = -3)]
         public AfterAction after_action = AfterAction.close;
 
+        
+        public Dictionary<string, object> extra = null;
+
         public DialogTypeMain(string name)
         {
             type = "minecraft:" + name;

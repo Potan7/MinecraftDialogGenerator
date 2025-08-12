@@ -23,11 +23,6 @@ public class TextComponentConverter : JsonConverter
             // JSON이 문자열인 경우
             return token.ToObject<string>();
         }
-        else if (token.Type == JTokenType.Object)
-        {
-            // JSON이 객체인 경우
-            return token.ToObject<TextComponentAbstract>();
-        }
         else if (token.Type == JTokenType.Array)
         {
             // JSON이 배열인 경우
@@ -38,9 +33,8 @@ public class TextComponentConverter : JsonConverter
             // JSON이 null인 경우
             return null;
         }
-
         // 지원하지 않는 토큰 타입일 경우 예외 발생 또는 기본값 처리
-        throw new JsonSerializationException($"Unexpected JSON token type: {token.Type} for a TextComponent field.");
+        throw new JsonSerializationException($"Unexpected JSON token type: {token.Type}. Expected String, Array or Null.");
     }
 
     // C# 객체를 JSON으로 내보낼 때 호출됩니다. (Serialize)
@@ -50,10 +44,6 @@ public class TextComponentConverter : JsonConverter
         if (value is string stringValue)
         {
             writer.WriteValue(stringValue); // 문자열로 내보내기
-        }
-        else if (value is TextComponentAbstract objectValue)
-        {
-            serializer.Serialize(writer, objectValue); // 객체로 내보내기
         }
         else if (value is List<TextComponentAbstract> listValue)
         {
@@ -65,7 +55,7 @@ public class TextComponentConverter : JsonConverter
         }
         else
         {
-            throw new JsonSerializationException($"Unsupported type for a TextComponent field: {value.GetType()}");
+            throw new JsonSerializationException($"Unsupported type for this field: {value.GetType()}");
         }
     }
 }
