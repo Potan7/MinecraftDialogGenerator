@@ -1,5 +1,0 @@
-.panel {
-    background-color: rgb(63, 63, 63);
-    width: 20%;
-    height: 100%;
-}
