@@ -1,17 +1,20 @@
-import { useMemo } from 'react'
-import { useStore } from './store'
+import { useSelectedNode, useStore } from './store'
+import { importNodesFromFile, exportNodesToFile } from './fileService'
 
 export default function Inspector() {
-  const nodes = useStore((s) => s.nodes)
-  const selected = useStore((s) => s.selectedNodeId)
+  const node = useSelectedNode()
   const updateNode = useStore((s) => s.updateNode)
-
-  const node = useMemo(() => nodes.find((n) => n.id === selected) ?? null, [nodes, selected])
 
   if (!node) {
     return (
       <div className="inspector">
-        <h3 style={{ marginTop: 0 }}>Inspector</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ margin: 0 }}>Inspector</h3>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={importNodesFromFile}>Import</button>
+            <button onClick={exportNodesToFile}>Export</button>
+          </div>
+        </div>
         <p>No node selected</p>
       </div>
     )
@@ -19,7 +22,13 @@ export default function Inspector() {
 
   return (
     <div className="inspector">
-      <h3 style={{ marginTop: 0 }}>Inspector</h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3 style={{ margin: 0 }}>Inspector</h3>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={importNodesFromFile}>Import</button>
+          <button onClick={exportNodesToFile}>Export</button>
+        </div>
+      </div>
       <div style={{ display: 'grid', gap: '8px' }}>
         <label>
           <div style={{ fontSize: 12, color: '#555' }}>ID</div>

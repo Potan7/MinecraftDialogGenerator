@@ -8,27 +8,30 @@ body, html, #root {
 }
 
 .app-container {
-  display: flex;
+  position: relative;
   width: 100vw; /* 100% of viewport width */
   height: 100vh; /* 100% of viewport height */
 }
 
 .canvas {
-  flex-grow: 1; /* Takes up all available space */
+  position: absolute;
+  inset: 0; /* top:0; right:0; bottom:0; left:0 */
   background-color: #f6f7fb;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: #888;
+  overflow: hidden;
 }
 
 .inspector {
-  width: 300px; /* Fixed width for the inspector */
-  flex-shrink: 0; /* Prevents the inspector from shrinking */
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 300px;
+  height: 100%;
   background-color: #e0e0e0;
   padding: 1rem;
-  box-sizing: border-box; /* Ensures padding is included in the width */
+  box-sizing: border-box;
   border-left: 1px solid #ccc;
+  color: #111;
+  z-index: 10;
 }
 
 .inspector input, .inspector textarea {
@@ -38,6 +41,19 @@ body, html, #root {
   border-radius: 6px;
   border: 1px solid #cfcfcf;
   background: #fff;
+  color: #111; /* Override global white text so content is visible on white bg */
+  caret-color: #111;
+}
+
+.inspector button {
+  background: #fff;
+  color: #111;
+  border: 1px solid #cfcfcf;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+.inspector button:hover {
+  border-color: #999;
 }
 
 .inspector input:disabled {

@@ -17,6 +17,7 @@ type Actions = {
   ensureCenteredNode: (canvasWidth: number, canvasHeight: number) => void
   selectNode: (id: string | null) => void
   updateNode: (id: string, patch: Partial<NodeData>) => void
+  setNodes: (nodes: NodeData[], selectedId?: string | null) => void
 }
 
 export const useStore = create<State & Actions>((set, get) => ({
@@ -44,4 +45,19 @@ export const useStore = create<State & Actions>((set, get) => ({
     set((state) => ({
       nodes: state.nodes.map((n) => (n.id === id ? { ...n, ...patch } : n)),
     })),
+
+  setNodes: (nodes, selectedId) =>
+    set(() => ({
+      nodes,
+      selectedNodeId:
+        typeof selectedId !== 'undefined'
+          ? selectedId
+          : nodes.length > 0
+            ? nodes[0].id
+            : null,
+    })),
 }))
+
+// Convenience selector to read the currently selected node
+export const useSelectedNode = () =>
+  useStore((s) => s.nodes.find((n) => n.id === s.selectedNodeId) ?? null)
