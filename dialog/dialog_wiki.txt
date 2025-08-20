@@ -1,0 +1,387 @@
+
+Dialog
+This article is about dialog format specification. For the command, see Commands/dialog. For other uses, see Dialog (disambiguation).
+
+This article describes content that may be included in Java Edition. 
+This content has appeared in Java Edition 1.21.6 development versions, but the full update containing it has not been released yet.
+
+This feature is exclusive to Java Edition. 
+
+Contents
+1	Usage
+2	Definition
+3	Dialog format
+3.1	notice
+3.2	confirmation
+3.3	multi_action
+3.4	server_links
+3.5	dialog_list
+4	Body format
+4.1	plain_message
+4.2	item
+5	Input control format
+5.1	text
+5.2	boolean
+5.3	single_option
+5.4	number_range
+6	Action format
+6.1	Static action types
+6.1.1	open_url
+6.1.2	run_command
+6.1.3	suggest_command
+6.1.4	change_page
+6.1.5	copy_to_clipboard
+6.1.6	show_dialog
+6.1.7	custom
+6.2	Dynamic action types
+6.2.1	dynamic/run_command
+6.2.2	dynamic/custom
+7	Dialog tag
+8	History
+9	Navigation
+Dialogs are simple modal windows that can display information and receive player input.
+
+Usage
+Dialogs can be displayed to players using the /dialog command by server operators while in gameplay. Additionally, they can be displayed through a show_dialog action in a text component or another dialog (see § Action format). They can also be configured for the pause menu and when pressing the quick actions hotkey (see § Dialog tag).
+
+Dialogs enable various forms of interaction with the game, including:
+
+Sending messages or information using text components, including rich text formatting and clickable links;
+Receiving player input through input control fields such as textbox, toggle, slider, and option selection;
+Executing commands via action buttons (privileged commands can only be executed by server operators); and
+Navigating between multiple dialogs using nested structures.
+Dialogs mostly comprise of these three elements, however their exact contents are dependent of the type:
+
+Header, which contains the title and warning button;
+Body elements, which may be labels, inputs, buttons, and submit actions (scrollable if needed); and
+Optional footer, which may contain confirmation buttons and submit actions.
+When a dialog window opens, player controls are disabled temporarily until the user exits the window through an exit action button, the escape key (Esc), or the warning button next to the dialog's title (which returns the user back to the title screen). In singleplayer, a dialog can be configured to pause the game, in which case the game also autosaves.
+
+Definition
+Dialog can be defined in data packs, as part of the directory structure below.
+
+File archive.png: Sprite image for archive in Minecraft data pack name.zip or File directory.png: Sprite image for directory in Minecraft data pack name
+File file.png: Sprite image for file in Minecraft pack.mcmeta
+File directory.png: Sprite image for directory in Minecraft data
+File directory.png: Sprite image for directory in Minecraft namespace
+File directory.png: Sprite image for directory in Minecraft dialog
+File file.png: Sprite image for file in Minecraft <name>.json
+More directories…
+Dialog format
+Dialogs have different structure depending on their type, which is specified by [String] type tag. The structure below applies to every dialog types:
+
+*: If parent field is written, this field is required.
+[NBT Compound / JSON Object] The root tag.
+[String] type*: One of dialog types from the minecraft:dialog_type registry:
+minecraft:notice
+minecraft:confirmation
+minecraft:multi_action
+minecraft:server_links
+minecraft:dialog_list
+[NBT Compound / JSON Object][String] title*: Screen title, text component. Should be always visible on screen, no matter the specific type.
+[NBT Compound / JSON Object][String] external_title: Name to be used for a button leading to this dialog (for example, on the pause menu), optional text component. If not present, title will be used instead.
+[NBT List / JSON Array][NBT Compound / JSON Object] body: Optional list of body elements or a single body element. See Dialog § Body format.
+[NBT List / JSON Array] inputs: Optional list of input controls. See Dialog § Input control format.
+[Boolean] can_close_with_escape: Can dialog be dismissed with Escape key. Defaults to true.
+[Boolean] pause: If the dialog screen should pause the game in single-player mode. Defaults to true.
+[String] after_action: An additional operation performed on the dialog after click or submit actions. Defaults to close. Can be one of the following:
+close: Closes the dialog and returns to the previous non-dialog screen (if any).
+none: Does nothing, i.e. keeps the current dialog screen open (only available if [Boolean] pause is false to avoid locking the game in single-player mode).
+wait_for_response: Replace the current dialog with a "Waiting for Response" screen.
+Other fields depending on [String] type, see below.
+notice
+
+A minecraft:notice dialog type.
+A dialog screen with a single action button in footer, specified by [NBT Compound / JSON Object] action. By default, the exit action (which returns the player back to gameplay) is the same [NBT Compound / JSON Object] action button.
+
+[NBT Compound / JSON Object] The root tag.
+[String] type*: minecraft:notice.
+Tags common to all dialog types[]
+[NBT Compound / JSON Object] action: Click action. Defaults to button with gui.ok label and no action or tooltip.
+[NBT Compound / JSON Object][String] label*: Text component.
+[NBT Compound / JSON Object][String] tooltip: Optional text component to display when button is highlighted or hovered over.
+[Int] width: Value between 1 and 1024 — Width of the button. Defaults to 150.
+[NBT Compound / JSON Object] action: An action to perform when button is clicked. See Dialog § Action format
+confirmation
+
+A minecraft:confirmation dialog type.
+A dialog screen with two action buttons in footer, specified by [NBT Compound / JSON Object] yes and [NBT Compound / JSON Object] no. By default, the exit action is [NBT Compound / JSON Object] no button.
+
+[NBT Compound / JSON Object] The root tag.
+[String] type*: minecraft:confirmation.
+Tags common to all dialog types[]
+[NBT Compound / JSON Object] yes*: Click action for positive outcome.
+[NBT Compound / JSON Object][String] label*: Text component.
+[NBT Compound / JSON Object][String] tooltip: Optional text component to display when button is highlighted or hovered over.
+[Int] width: Value between 1 and 1024 — Width of the button. Defaults to 150.
+[NBT Compound / JSON Object] action: An action to perform when button is clicked. See Dialog § Action format
+[NBT Compound / JSON Object] no*: Click action for negative outcome.
+[NBT Compound / JSON Object][String] label*: Text component.
+[NBT Compound / JSON Object][String] tooltip: Optional text component to display when button is highlighted or hovered over.
+[Int] width: Value between 1 and 1024 — Width of the button. Defaults to 150.
+[NBT Compound / JSON Object] action: An action to perform when button is clicked. See Dialog § Action format
+multi_action
+
+A minecraft:multi_action dialog type.
+A dialog screen with a scrollable list of action buttons arranged in columns. If [NBT Compound / JSON Object] exit_action is present, a button for it will appear in the footer, otherwise the footer is not present. [NBT Compound / JSON Object] exit_action is also used for the Escape action.
+
+[NBT Compound / JSON Object] The root tag.
+[String] type*: minecraft:multi_action.
+Tags common to all dialog types[]
+[NBT List / JSON Array] actions: Non-empty list of click actions.
+[NBT Compound / JSON Object][String] label*: Text component.
+[NBT Compound / JSON Object][String] tooltip: Optional text component to display when button is highlighted or hovered over.
+[Int] width: Value between 1 and 1024 — Width of the button. Defaults to 150.
+[NBT Compound / JSON Object] action: An action to perform when button is clicked. See Dialog § Action format
+[Int] columns: Positive integer describing number of columns. Defaults to 2.
+[NBT Compound / JSON Object] exit_action: Action for leaving the dialog.
+[NBT Compound / JSON Object][String] label*: Text component.
+[NBT Compound / JSON Object][String] tooltip: Optional text component to display when button is highlighted or hovered over.
+[Int] width: Value between 1 and 1024 — Width of the button. Defaults to 150.
+[NBT Compound / JSON Object] action: An action to perform when button is clicked. See Dialog § Action format
+server_links
+
+An empty minecraft:server_links dialog type.
+A dialog screen with scrollable list of server links, arranged in columns. If [NBT Compound / JSON Object] exit_action is present, a button for it will appear in the footer, otherwise the footer is not present. [NBT Compound / JSON Object] exit_action is also used for the Escape action.
+
+[NBT Compound / JSON Object] The root tag.
+[String] type*: minecraft:server_links.
+Tags common to all dialog types[]
+[NBT Compound / JSON Object] exit_action: Action for leaving the dialog.
+[NBT Compound / JSON Object][String] label*: Text component.
+[NBT Compound / JSON Object][String] tooltip: Optional text component to display when button is highlighted or hovered over.
+[Int] width: Value between 1 and 1024 — Width of the button. Defaults to 150.
+[NBT Compound / JSON Object] action: An action to perform when button is clicked. See Dialog § Action format
+[Int] columns: Positive integer describing number of columns. Defaults to 2.
+[Int] button_width: Value between 1 and 1024 — Width of the button. Defaults to 150.
+dialog_list
+
+A minecraft:dialog_list type dialog with other dialog types.
+A dialog screen with scrollable list of buttons leading directly to other dialogs, arranged in columns. Titles of those buttons will be taken from [String] external_title fields of targeted dialogs. If [NBT Compound / JSON Object] exit_action is present, a button for it will appear in the footer, otherwise the footer is not present. [NBT Compound / JSON Object] exit_action is also used for the Escape action.
+
+[NBT Compound / JSON Object] The root tag.
+[String] type*: minecraft:dialog_list.
+Tags common to all dialog types[]
+[String][NBT Compound / JSON Object][NBT List / JSON Array] dialogs: Any number of dialog(s) (an [String] ID, or a new [NBT Compound / JSON Object] dialog definition, or a [String] tag with #, or an [NBT List / JSON Array] array containing either [String] IDs or new [NBT Compound / JSON Object] definitions in the same data type) to show in the list.
+[NBT Compound / JSON Object] exit_action: Action for leaving the dialog.
+[NBT Compound / JSON Object][String] label*: Text component.
+[NBT Compound / JSON Object][String] tooltip: Optional text component to display when button is highlighted or hovered over.
+[Int] width: Value between 1 and 1024 — Width of the button. Defaults to 150.
+[NBT Compound / JSON Object] action: An action to perform when button is clicked. See Dialog § Action format
+[Int] columns: Positive integer describing number of columns. Defaults to 2.
+[Int] button_width: Value between 1 and 1024 — Width of the button. Defaults to 150.
+Body format
+All dialogs have a list of body elements describing contents between title and actions or inputs.
+
+plain_message
+A multiline label.
+
+[NBT Compound / JSON Object]: The body element
+[String] type: minecraft:plain_message
+[NBT Compound / JSON Object] contents: Text component.
+[Int] width: Value between 1 and 1024 — Maximum width of message. Defaults to 200.
+item
+An item with optional description. It appears like it is in the inventory slot when the mouse hovers over the item. The size does not scale even if width and height are set to other values than the default. If the description is present, then it appears next to the right side of the item.
+
+[NBT Compound / JSON Object]: The body element
+[String] type: minecraft:item
+[NBT Compound / JSON Object] item: Item stack with count.
+[String] id: Item identifier.
+[Int] count: Item count.
+[NBT Compound / JSON Object] components: Optional. Additional information about the item. See item components.
+[String] description: Optional text component, can also be an object with fields:
+[String] contents: Text component.
+[Int] width: Value between 1 and 1024 — Maximum width of message. Defaults to 200.
+[Boolean] show_decoration: If true, count and damage bar will be rendered over the item. Defaults to true.
+[Boolean] show_tooltip: If true, item tooltip will show up when item is hovered. Defaults to true.
+[Int] width: Value between 1 and 256 — Horizontal size of element. Defaults to 16.
+[Int] height: Value between 1 and 256 — Vertical size of element. Defaults to 16.
+Input control format
+
+All input controls on a dialog.
+Input controls are used to receive certain information from the players. These information can be used with the associated [String] key tag, for example, when an action button is clicked, the [String] key can be used to reference information stored on that input control, either when running a command with macro substitution, or a custom NBT tag sent to the server (see § Dynamic action types).
+
+All input control types have a label field.
+
+[NBT Compound / JSON Object]: The input control
+[String] type*: One of dialog types from the minecraft:input_control_type registry:
+minecraft:text
+minecraft:boolean
+minecraft:single_option
+minecraft:number_range
+[String] key*: String identifier of value used when submitting data, must be a valid template argument (letters, digits and _).
+[String][NBT List / JSON Array][NBT Compound / JSON Object] label*: A text component to be displayed to the left of the input.
+Additional fields based on [String] type, see below.
+text
+A basic, single line, text input.
+
+Output values:
+
+As template substitution: contents with special characters escaped using escape sequences to fit into an SNBT string.
+As tag: a string tag with contents without modification.
+[NBT Compound / JSON Object]: The input control
+[String] type*: minecraft:text
+Tags common to all dialog input control types[]
+[Int] width: Value between 1 and 1024 — The width of the input. Defaults to 200.
+[Boolean] label_visible: Controls if the label is visible. Defaults to true.
+[String] initial: The initial value of the text input.
+[Int] max_length: Maximum length of input. Defaults to 32.
+[NBT Compound / JSON Object] multiline: If present, allows users to input multiple lines, optional object with fields:
+[Int] max_lines: Optional positive integer. If present, limits maximum lines.
+[Int] height: Value between 1 and 512 — Height of input.
+boolean
+A checkbox.
+
+Output values:
+
+As template substitution: [String] on_true when checked, [String] on_false when unchecked.
+As tag: 1b when checked, 0b when unchecked.
+[NBT Compound / JSON Object]: The input control
+[String] type*: minecraft:boolean
+Tags common to all dialog input control types[]
+[Boolean] initial: The initial value of the checkbox. Defaults to false (unchecked).
+[String] on_true: The string value to send when true. Defaults to 'true'.
+[String] on_false: The string value to send when false. Defaults to 'false'.
+single_option
+A preset option selection.
+
+[NBT Compound / JSON Object]: The input control
+[String] type*: minecraft:single_option
+Tags common to all dialog input control types[]
+[Boolean] label_visible: Controls if the label is visible. Defaults to true.
+[Int] width: Value between 1 and 1024 — The width of the input. Defaults to 200.
+[NBT List / JSON Array] options*: A non-empty list of options to be selected from:
+[NBT Compound / JSON Object] option: An option compound.
+[String] id*: The value to be sent on submit.
+[String] display: A text component for what the option is displayed as.
+[Boolean] initial: Only one option can have this set to true. If true, the option chosen will be the initial one. Defaults to the first option being true, and all others false.
+number_range
+A number slider.
+
+Output values:
+
+As template substitution: text representation of current value.
+Whole numbers will be sent without decimal point.
+As tag: a float tag with current value.
+[NBT Compound / JSON Object]: The input control
+[String] type*: minecraft:number_range
+Tags common to all dialog input control types[]
+[String] label_format: A translation key to be used for building label (first argument is contents of label field, second argument is current value). Defaults to options.generic_value.
+[Int] width: Value between 1 and 1024 — The width of the input. Defaults to 200.
+[Float] start*: The minimum number of the slider.
+[Float] end*: The maximum number of the slider.
+[Float] step: Step size (If present, only values of 
+i
+n
+i
+t
+i
+a
+l
++
+<
+a
+n
+y
+i
+n
+t
+e
+g
+e
+r
+>
+*
+s
+t
+e
+p
+ will be allowed. If absent, any value from the range is allowed).
+[Int] initial: The initial increment value of the slider. Defaults to the middle of the range.
+Action format
+Static action types
+Static actions are actions that don't depend on the value of an input field. They are identical to text component events (except for open_file). They use the same format but with the action tag replaced with type.
+
+For example, when using show_dialog, entry for action button will look like:
+
+{
+    "label": "Show dialog label",
+    "action": {
+        "type": "show_dialog",
+        "dialog": "custom:my_dialog"
+    }
+}
+open_url
+Opens the specified URL in the user's default web browser.
+
+[NBT Compound / JSON Object] action
+[String] type: open_url
+[String] url: The URL to open.
+run_command
+Runs the specified command. This runs as if the player typed the specified command in chat and pressed enter. However, this can only be used to run commands that do not send chat messages directly (like /say, /tell, and /teammsg). Since they are being run from chat, the player must have the required permissions.
+
+[NBT Compound / JSON Object] action
+[String] type: run_command
+[String] command: The command to run. Does not need to be prefixed with a / slash.
+suggest_command
+Opens chat and fills in the specified text or command. If a chat message was already being composed, it is overwritten. This does not work in books.[1]
+
+[NBT Compound / JSON Object] action
+[String] type: suggest_command
+[String] command: The command to fill in chat. Also works with normal texts.
+change_page
+Can only be used in written books. Changes to the specified page if that page exists.
+
+[NBT Compound / JSON Object] action
+[String] type: change_page
+[Int] page: The page to change to.
+copy_to_clipboard
+Copies the specified text to the clipboard.
+
+[NBT Compound / JSON Object] action
+[String] type: copy_to_clipboard
+[String] value: The text to copy.
+show_dialog
+
+This section describes content that may be included in Java Edition. 
+This content has appeared in Java Edition 1.21.6 development versions, but the full update containing it has not been released yet.
+Opens the specified dialog.
+
+[NBT Compound / JSON Object] action
+[String] type: show_dialog
+[String][NBT Compound / JSON Object] dialog: One dialog (an [String] ID, or a new [NBT Compound / JSON Object] dialog definition) to display.
+custom
+
+This section describes content that may be included in Java Edition. 
+This content has appeared in Java Edition 1.21.6 development versions, but the full update containing it has not been released yet.
+Sends a custom event to the server; has no effect on vanilla servers.
+
+[NBT Compound / JSON Object] action
+[String] type: custom
+[String] id: Any ID to identify the event.
+[String] payload: Optional payload of the event.
+
+
+Dynamic action types
+Can be used in conjunction with input controls.
+
+dynamic/run_command
+This action will build a run_command event using a provided macro template
+
+[NBT Compound / JSON Object] action
+[String] type*: dynamic/run_command
+[String] template: A string with a macro template to be interpreted as a command.
+dynamic/custom
+This method will build a minecraft:custom event using all input values.
+
+All input contents will be sent together inside a [NBT Compound / JSON Object] compound tag, with tag value of each input put under id from key field of that input.
+
+Additional static fields can be added to payload.
+
+[NBT Compound / JSON Object] action
+[String] type*: dynamic/custom
+[NBT Compound / JSON Object] additions: Fields to be added to payload.
+[String] id: Namespaced ID.
+Dialog tag
+Main article: Dialog tag (Java Edition)
+A data pack can apply one or more dialogs to the pause screen and the quick actions hotkey using the #minecraft:pause_screen_additions and #minecraft:quick_actions tags. If multiple dialogs are applied to the same method, the built-in minecraft:custom_options or minecraft:quick_actions dialog is shown instead which by default feature a list of all dialogs in the respective tags, using the [String] external_title tag in the dialogs.
