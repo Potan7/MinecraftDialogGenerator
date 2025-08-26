@@ -49,12 +49,36 @@ export default function Inspector() {
   // 공통 유틸: MCText 편집기 (간단 버전)
   const MCTextEditor = ({ value, onChange, label }: { value: MCText; onChange: (t: MCText) => void; label: string }) => {
     const [draft, setDraft] = useState<MCText>(value ?? { text: '' })
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const [isTyping, setIsTyping] = useState(false)
+  const debounceRef = useRef<number | null>(null)
     useEffect(() => {
       // 동기화: 주요 필드 변화만 반영
       setDraft((prev) => ({ ...prev, ...value }))
     }, [value])
-    const commit = () => onChange(draft)
-    const set = (patch: Partial<MCText>) => setDraft((d) => ({ ...d, ...patch }))
+    useEffect(() => {
+      // 편집 중에는 리렌더 후에도 포커스를 유지합니다.
+      if (isTyping && inputRef.current) {
+        inputRef.current.focus()
+      }
+    }, [isTyping, draft.text, draft.translate])
+
+    const scheduleCommit = (next: MCText) => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current)
+      debounceRef.current = window.setTimeout(() => {
+        onChange(next)
+        debounceRef.current = null
+      }, 200)
+    }
+    const flushCommit = () => {
+      if (debounceRef.current) {
+        window.clearTimeout(debounceRef.current)
+        debounceRef.current = null
+      }
+      onChange(draft)
+    }
+  const commit = () => onChange(draft)
+  const set = (patch: Partial<MCText>) => setDraft((d) => ({ ...d, ...patch }))
     return (
       <div style={{ border: '1px solid #e5e5e5', borderRadius: 6, padding: 8 }}>
         <div style={{ fontWeight: 600, marginBottom: 6 }}>{label}</div>
@@ -85,24 +109,64 @@ export default function Inspector() {
             <>
               <label>
                 <div style={{ fontSize: 12, color: '#555' }}>translate</div>
-                <input value={draft.translate ?? ''} onChange={(e) => set({ translate: e.target.value })} onBlur={commit} />
+                <input
+                  ref={inputRef}
+                  value={draft.translate ?? ''}
+                  onChange={(e) => {
+                    const next = { ...draft, translate: e.target.value }
+                    setDraft(next)
+                    scheduleCommit(next)
+                  }}
+                  onFocus={() => setIsTyping(true)}
+                    onBlur={() => { setIsTyping(false); flushCommit() }}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  onKeyUp={(e) => e.stopPropagation()}
+                />
               </label>
               <label>
                 <div style={{ fontSize: 12, color: '#555' }}>fallback</div>
-                <input value={draft.fallback ?? ''} onChange={(e) => set({ fallback: e.target.value || undefined })} onBlur={commit} />
+                <input
+                  value={draft.fallback ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value || undefined
+                    const next = { ...draft, fallback: v }
+                    setDraft(next)
+                    scheduleCommit(next)
+                  }}
+                />
               </label>
             </>
           ) : (
             <label>
               <div style={{ fontSize: 12, color: '#555' }}>text</div>
-              <input value={draft.text ?? ''} onChange={(e) => set({ text: e.target.value })} onBlur={commit} />
+              <input
+                ref={inputRef}
+                value={draft.text ?? ''}
+                onChange={(e) => {
+                  const next = { ...draft, text: e.target.value }
+                  setDraft(next)
+                  scheduleCommit(next)
+                }}
+                onFocus={() => setIsTyping(true)}
+                  onBlur={() => { setIsTyping(false); flushCommit() }}
+                onKeyDown={(e) => e.stopPropagation()}
+                onKeyUp={(e) => e.stopPropagation()}
+              />
             </label>
           )}
 
           {/* Formatting */}
           <label>
             <div style={{ fontSize: 12, color: '#555' }}>color</div>
-            <input value={draft.color ?? ''} onChange={(e) => set({ color: e.target.value || undefined })} onBlur={commit} />
+            <input
+              value={draft.color ?? ''}
+              onChange={(e) => {
+                const v = e.target.value || undefined
+                const next = { ...draft, color: v }
+                setDraft(next)
+                scheduleCommit(next)
+              }}
+            />
           </label>
           <div style={{ display: 'flex', gap: 8 }}>
             {(['bold', 'italic', 'underlined', 'strikethrough', 'obfuscated'] as const).map((k) => (
@@ -110,8 +174,11 @@ export default function Inspector() {
                 <input
                   type="checkbox"
                   checked={!!draft[k]}
-                  onChange={(e) => setDraft((d) => ({ ...d, [k]: e.target.checked } as MCText))}
-                  onBlur={commit}
+                  onChange={(e) => {
+                    const next = { ...draft, [k]: e.target.checked } as MCText
+                    setDraft(next)
+                    onChange(next)
+                  }}
                 />
                 <span>{k}</span>
               </label>
@@ -146,11 +213,11 @@ export default function Inspector() {
                 onChange={(e) => {
                   if (draft.hover_event?.action === 'show_text') {
                     const hv = { action: 'show_text', value: { ...draft.hover_event.value, text: e.target.value } } as Extract<NonNullable<MCText['hover_event']>, { action: 'show_text' }>
-                    set({ hover_event: hv })
-                    onChange({ ...draft, hover_event: hv })
+                    const next = { ...draft, hover_event: hv }
+                    setDraft(next)
+                    scheduleCommit(next)
                   }
                 }}
-                onBlur={commit}
               />
             </label>
           )}
@@ -319,16 +386,22 @@ export default function Inspector() {
             label="Label"
             value={draft.label ?? { text: '' }}
             onChange={(t) => {
-              set({ label: t })
-              commit()
+              setDraft((prev) => {
+                const next = { ...prev, label: t }
+                onChange(next)
+                return next
+              })
             }}
           />
           <MCTextEditor
             label="Tooltip"
             value={draft.tooltip ?? { text: '' }}
             onChange={(t) => {
-              set({ tooltip: t })
-              commit()
+              setDraft((prev) => {
+                const next = { ...prev, tooltip: t }
+                onChange(next)
+                return next
+              })
             }}
           />
           <label>
@@ -338,8 +411,11 @@ export default function Inspector() {
               min={1}
               max={1024}
               value={draft.width ?? ''}
-              onChange={(e) => set({ width: e.target.value ? Number(e.target.value) : undefined })}
-              onBlur={commit}
+              onChange={(e) => {
+                const w = e.target.value ? Number(e.target.value) : undefined
+                setDraft((prev) => ({ ...prev, width: w }))
+              }}
+              onBlur={() => onChange(draft)}
             />
           </label>
           {/* ActionDef 선택 */}
@@ -417,7 +493,7 @@ export default function Inspector() {
             )}
       {draft.action?.type === 'show_dialog' && (
               <label style={{ marginTop: 6 }}>
-                <div style={{ fontSize: 12, color: '#555' }}>dialog (id or inline not supported yet)</div>
+                <div style={{ fontSize: 12, color: '#555' }}>dialog ID</div>
         <input value={typeof draft.action.dialog === 'string' ? draft.action.dialog : ''}
           onChange={(e) => setAction({ type: 'show_dialog', dialog: e.target.value })} onBlur={commit} />
               </label>
@@ -519,6 +595,7 @@ export default function Inspector() {
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={importNodesFromFile}>Import</button>
           <button onClick={exportNodesToFile}>Export</button>
+          <button onClick={() => useStore.getState().deleteNode(useStore.getState().selectedNodeId!)} style={{ color: '#b00' }}>Delete</button>
         </div>
       </div>
       {/* 필드 편집 폼 */}
@@ -943,29 +1020,42 @@ export default function Inspector() {
 
               <div>
                 <div style={{ fontWeight: 600, marginBottom: 6 }}>Dialogs (IDs)</div>
-                {(node.dialog.dialogs ?? []).map((d, i) => (
-                  <div key={i} className="list-item" style={{ marginBottom: 6 }}>
-                    <input
-                      type="text"
-                      value={typeof d === 'string' ? d : ''}
-                      onChange={(e) => {
-                        const list = [...(node.dialog.dialogs ?? [])]
-                        list[i] = e.target.value
-                        updateNode(node.id, { dialog: { ...node.dialog, dialogs: list } })
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="icon-btn"
-                      onClick={() => {
-                        const list = (node.dialog.dialogs ?? []).filter((_, idx) => idx !== i)
-                        updateNode(node.id, { dialog: { ...node.dialog, dialogs: list } })
-                      }}
-                    >
-                      −
-                    </button>
-                  </div>
-                ))}
+                {(node.dialog.dialogs ?? []).map((d, i) => {
+                  const DialogIdInput = ({ initial, onCommit }: { initial: string; onCommit: (v: string) => void }) => {
+                    const [v, setV] = useState(initial)
+                    useEffect(() => setV(initial), [initial])
+                    return (
+                      <input
+                        type="text"
+                        value={v}
+                        onChange={(e) => setV(e.target.value)}
+                        onBlur={() => onCommit(v)}
+                      />
+                    )
+                  }
+                  return (
+                    <div key={i} className="list-item" style={{ marginBottom: 6 }}>
+                      <DialogIdInput
+                        initial={typeof d === 'string' ? d : ''}
+                        onCommit={(newVal) => {
+                          const list = [...(node.dialog.dialogs ?? [])]
+                          list[i] = newVal
+                          updateNode(node.id, { dialog: { ...node.dialog, dialogs: list } })
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        onClick={() => {
+                          const list = (node.dialog.dialogs ?? []).filter((_, idx) => idx !== i)
+                          updateNode(node.id, { dialog: { ...node.dialog, dialogs: list } })
+                        }}
+                      >
+                        −
+                      </button>
+                    </div>
+                  )
+                })}
                 <button
                   type="button"
                   className="icon-btn"

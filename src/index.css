@@ -1,3 +1,17 @@
+@font-face {
+  font-family: 'Minecraftia';
+  src: url('./assets/Minecraftia-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Unifont';
+  src: url('./assets/unifont.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;

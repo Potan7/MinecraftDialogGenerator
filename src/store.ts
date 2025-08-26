@@ -160,6 +160,7 @@ export type NodeData = {
 type State = {
   nodes: NodeData[]
   selectedNodeId: string | null
+  edges: { id: string; from: string; to: string }[]
 }
 
 type Actions = {
@@ -168,11 +169,13 @@ type Actions = {
   updateNode: (id: string, patch: Partial<NodeData>) => void
   setNodes: (nodes: NodeData[], selectedId?: string | null) => void
   renameNode: (oldId: string, newId: string) => void
+  deleteNode: (id: string) => void
 }
 
 export const useStore = create<State & Actions>((set, get) => ({
   nodes: [],
   selectedNodeId: null,
+  edges: [],
 
   ensureCenteredNode: (canvasWidth, canvasHeight) => {
   // 노드가 하나도 없을 때만 기본 노드를 화면 중앙에 배치합니다.
@@ -203,9 +206,107 @@ export const useStore = create<State & Actions>((set, get) => ({
   selectNode: (id) => set({ selectedNodeId: id }),
 
   updateNode: (id, patch) =>
-    set((state) => ({
-      nodes: state.nodes.map((n) => (n.id === id ? { ...n, ...patch } : n)),
-    })),
+    set((state) => {
+      // apply patch
+      const nodes = state.nodes.map((n) => (n.id === id ? { ...n, ...patch } : n))
+      const node = nodes.find((n) => n.id === id)
+      if (!node) return { nodes }
+      // materialize inline child dialogs and connect with edges
+  const childDialogs: DialogCommon[] = []
+  const childDialogIds: string[] = []
+      const extractAction = (c?: ClickAction): ActionDef | undefined => c?.action
+      const pushShowDialog = (a?: ActionDef) => {
+        if (a && a.type === 'show_dialog' && typeof a.dialog === 'object') {
+          childDialogs.push(a.dialog)
+        } else if (a && a.type === 'show_dialog' && typeof a.dialog === 'string') {
+          const idStr = a.dialog.trim()
+          if (idStr) childDialogIds.push(idStr)
+        }
+      }
+      const d = node.dialog
+      if (d) {
+        // actions inside dialog
+        pushShowDialog(extractAction(d.action))
+        pushShowDialog(extractAction(d.yes))
+        pushShowDialog(extractAction(d.no))
+        pushShowDialog(extractAction(d.exit_action))
+        ;(d.actions ?? []).forEach((ac) => pushShowDialog(extractAction(ac)))
+        // dialog_list inline dialogs
+        if (d.type === 'minecraft:dialog_list') {
+          ;(d.dialogs ?? []).forEach((dlg) => {
+            if (typeof dlg === 'object') childDialogs.push(dlg)
+            else if (typeof dlg === 'string') {
+              const idStr = dlg.trim()
+              if (idStr) childDialogIds.push(idStr)
+            }
+          })
+        }
+      }
+      const simpleTitle = (t: MCText): string => {
+        if (!t) return 'Dialog'
+        if (typeof t === 'string') return String(t)
+        if (typeof t === 'object') {
+          if ('text' in t && t.text) return String(t.text)
+          if ('translate' in t && t.translate) return String(t.translate)
+        }
+        return 'Dialog'
+      }
+      const edges = [...state.edges]
+      const ensureEdge = (from: string, to: string) => {
+        if (!edges.some((e) => e.from === from && e.to === to)) {
+          edges.push({ id: `edge-${edges.length + 1}`, from, to })
+        }
+      }
+      const nodesOut = [...nodes]
+      const findNodeByDialog = (dlg: DialogCommon) => {
+        const key = JSON.stringify(dlg)
+        return nodesOut.find((n) => JSON.stringify(n.dialog) === key)
+      }
+      const makeNode = (dlg: DialogCommon, index: number) => {
+        const idBase = nodesOut.length + 1
+        const newId = `node-${idBase}`
+        const nn: NodeData = {
+          id: newId,
+          title: simpleTitle(dlg.title),
+          x: Math.round((node?.x ?? 0) + 400 + index * 40),
+          y: Math.round((node?.y ?? 0) + index * 60),
+          dialog: dlg,
+        }
+        nodesOut.push(nn)
+        return nn
+      }
+      childDialogs.forEach((dlg, i) => {
+        const existing = findNodeByDialog(dlg)
+        const target = existing ?? makeNode(dlg, i)
+        ensureEdge(id, target.id)
+      })
+      // Create or link by string dialog IDs
+      childDialogIds.forEach((targetId, i) => {
+        let target = nodesOut.find((n) => n.id === targetId)
+        if (!target) {
+          const nn: NodeData = {
+            id: targetId,
+            title: targetId,
+            x: Math.round((node?.x ?? 0) + 420 + i * 40),
+            y: Math.round((node?.y ?? 0) + 40 + i * 60),
+            dialog: {
+              type: 'minecraft:notice',
+              title: { text: targetId },
+              external_title: { text: targetId },
+              body: { type: 'minecraft:plain_message', contents: { text: '' }, width: 200 },
+              inputs: [],
+              can_close_with_escape: true,
+              pause: true,
+              after_action: 'close',
+            },
+          }
+          nodesOut.push(nn)
+          target = nn
+        }
+        ensureEdge(id, target.id)
+      })
+      return { nodes: nodesOut, edges }
+    }),
 
   setNodes: (nodes, selectedId) =>
     set(() => ({
@@ -237,6 +338,15 @@ export const useStore = create<State & Actions>((set, get) => ({
       nodes: state.nodes.map((n) => (n.id === oldId ? { ...n, id: newId } : n)),
       selectedNodeId: state.selectedNodeId === oldId ? newId : state.selectedNodeId,
     })),
+
+  // 노드를 삭제하고, 해당 노드로 향하거나 해당 노드에서 나가는 간선도 함께 제거합니다.
+  deleteNode: (id) =>
+    set((state) => {
+      const nodes = state.nodes.filter((n) => n.id !== id)
+      const edges = state.edges.filter((e) => e.from !== id && e.to !== id)
+      const selectedNodeId = state.selectedNodeId === id ? null : state.selectedNodeId
+      return { nodes, edges, selectedNodeId }
+    }),
 }))
 
 // 현재 선택된 노드를 바로 가져오기 위한 편의 셀렉터
